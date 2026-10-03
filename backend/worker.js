@@ -2,9 +2,15 @@
 export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin");
+    const allowedOrigins = (env.ALLOWED_ORIGINS || env.ALLOWED_ORIGIN || "")
+      .split(",")
+      .map((value) => value.trim());
+    const originAllowed = !!origin && allowedOrigins.includes(origin);
     const headers = {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN,
+      "Access-Control-Allow-Origin": originAllowed
+        ? origin
+        : env.ALLOWED_ORIGIN,
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Access-Control-Allow-Headers": "Authorization, Content-Type",
       Vary: "Origin",
@@ -12,10 +18,25 @@ export default {
     };
     const reply = (body, status = 200) =>
       new Response(JSON.stringify(body), { status, headers });
-    if (origin !== env.ALLOWED_ORIGIN)
-      return reply({ error: "Origin not permitted" }, 403);
+    if (!originAllowed) return reply({ error: "Origin not permitted" }, 403);
     if (request.method === "OPTIONS")
       return new Response(null, { status: 204, headers });
+    if (
+      request.method === "GET" &&
+      new URL(request.url).pathname === "/health"
+    ) {
+      if (!env.OPENAI_API_KEY || !env.SCAN_TOKEN)
+        return reply({ error: "Scanner credentials are not configured." }, 503);
+      if (request.headers.get("Authorization") !== `Bearer ${env.SCAN_TOKEN}`)
+        return reply(
+          {
+            error:
+              "Scanner token is missing or incorrect. Paste the scanner access token, not your OpenAI API key.",
+          },
+          401,
+        );
+      return reply({ ready: true });
+    }
     if (request.method !== "POST")
       return reply({ error: "Method not allowed" }, 405);
     if (!env.OPENAI_API_KEY || !env.SCAN_TOKEN)

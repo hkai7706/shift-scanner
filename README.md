@@ -28,6 +28,8 @@ The personal deployment is now at `https://shiftly-scanner.shiftly-scanner.worke
 
 The `backend/` Cloudflare Worker accepts one rendered image/page per request and uses image input plus strict JSON extraction. It authenticates with a separate personal access token, enforces the configured origin and request size, and keeps the AI API key server-side. The token grants scanning access only and is held in browser memory until reload, never included in backups. Requests are processed sequentially with timeouts; failures produce honest errors rather than sample results.
 
+On Scan, **Test connection** checks the endpoint and scanner token without uploading a document or calling the AI provider. The scanner also checks this before rendering/uploading files. Connection errors show the page/scanner origins; token errors ask you to paste the access token again after refresh. The personal configuration allows only the GitHub Pages origin and explicitly listed localhost development/preview origins. `ALLOWED_ORIGINS` is an optional comma-separated whitelist; `ALLOWED_ORIGIN` remains the fallback for other deployments. No wildcard origins are allowed.
+
 1. Create a Cloudflare account and an OpenAI API project with access to the configured vision model. Set a small project spend limit. Provider processing may incur charges.
 2. In `backend/wrangler.toml`, set `ALLOWED_ORIGIN` to your exact frontend origin (for Pages: `https://YOUR_USERNAME.github.io`, without repository path). Adjust `SCAN_MODEL` if necessary.
 3. Run:

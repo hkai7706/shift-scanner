@@ -23,6 +23,45 @@ const request = (options = {}) =>
   });
 afterEach(() => vi.unstubAllGlobals());
 describe("scanner security and failure behavior", () => {
+  it("accepts explicitly configured local preview origins", async () => {
+    const origin = "http://localhost:4173";
+    const response = await worker.fetch(
+      new Request("https://scanner.example", {
+        method: "OPTIONS",
+        headers: { Origin: origin },
+      }),
+      { ...env, ALLOWED_ORIGINS: `${env.ALLOWED_ORIGIN},${origin}` },
+    );
+    expect(response.status).toBe(204);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(origin);
+  });
+  it("checks configuration and token without contacting the AI provider", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const response = await worker.fetch(
+      new Request("https://scanner.example/health", {
+        headers: {
+          Origin: env.ALLOWED_ORIGIN,
+          Authorization: `Bearer ${env.SCAN_TOKEN}`,
+        },
+      }),
+      env,
+    );
+    expect(await response.json()).toEqual({ ready: true });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it("rejects an incorrect health-check token", async () => {
+    const response = await worker.fetch(
+      new Request("https://scanner.example/health", {
+        headers: {
+          Origin: env.ALLOWED_ORIGIN,
+          Authorization: "Bearer incorrect",
+        },
+      }),
+      env,
+    );
+    expect(response.status).toBe(401);
+  });
   it("rejects unknown origins", async () =>
     expect(
       (
@@ -63,13 +102,11 @@ describe("scanner security and failure behavior", () => {
     expect((await worker.fetch(request(), env)).status).toBe(502);
   });
   it("sends server key only upstream and uses untrusted document input", async () => {
-    const mock = vi
-      .fn()
-      .mockResolvedValue(
-        Response.json({
-          choices: [{ message: { content: JSON.stringify({ shifts: [] }) } }],
-        }),
-      );
+    const mock = vi.fn().mockResolvedValue(
+      Response.json({
+        choices: [{ message: { content: JSON.stringify({ shifts: [] }) } }],
+      }),
+    );
     vi.stubGlobal("fetch", mock);
     const res = await worker.fetch(request(), env);
     expect(await res.json()).toEqual({ shifts: [] });

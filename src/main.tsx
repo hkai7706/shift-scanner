@@ -38,6 +38,7 @@ import {
   type State,
 } from "./model";
 import { read, mutate, channel } from "./store";
+import { scannerRequest, type ScanResponse } from "./scanner";
 import "./style.css";
 const uuid = () => crypto.randomUUID();
 const local = (n: number, z = zone()) =>
@@ -309,6 +310,12 @@ function App() {
     setScanning(true);
     setScanRows([]);
     try {
+      await scannerRequest<{ ready: boolean }>(
+        state.settings.scannerUrl,
+        token,
+        undefined,
+        state.settings.language,
+      );
       const pages: { filename: string; page: number; data: string }[] = [];
       for (const file of files) {
         if (file.size > 20 * 1024 * 1024)
@@ -360,13 +367,10 @@ function App() {
       }
       const results: typeof scanRows = [];
       for (const p of pages) {
-        const response = await fetch(state.settings.scannerUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
+        const result = await scannerRequest<ScanResponse>(
+          state.settings.scannerUrl,
+          token,
+          {
             names: [
               state.settings.name,
               ...state.settings.aliases
@@ -375,11 +379,9 @@ function App() {
                 .filter(Boolean),
             ],
             page: p,
-          }),
-          signal: AbortSignal.timeout(90000),
-        });
-        const result = await response.json();
-        if (!response.ok) throw Error(result.error || "Scan service failed");
+          },
+          state.settings.language,
+        );
         if (!Array.isArray(result.shifts))
           throw Error("Invalid scanner response");
         for (const row of result.shifts) {
@@ -1379,6 +1381,32 @@ function App() {
                   />
                 </label>
                 <div className="button-group">
+                  <button
+                    disabled={scanning}
+                    onClick={async () => {
+                      setScanning(true);
+                      try {
+                        await scannerRequest<{ ready: boolean }>(
+                          state.settings.scannerUrl,
+                          token,
+                          undefined,
+                          state.settings.language,
+                        );
+                        setMessage(
+                          t(
+                            "Connected. Scanner token accepted. No files were sent.",
+                            "接続成功。スキャナーのトークンを確認しました。ファイルは送信していません。",
+                          ),
+                        );
+                      } catch (e) {
+                        setMessage((e as Error).message);
+                      } finally {
+                        setScanning(false);
+                      }
+                    }}
+                  >
+                    {t("Test connection", "接続をテスト")}
+                  </button>
                   <button
                     className="primary"
                     disabled={!files.length || scanning}

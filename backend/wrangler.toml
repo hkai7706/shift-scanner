@@ -3,6 +3,7 @@ main = "worker.js"
 compatibility_date = "2026-01-01"
 [vars]
 ALLOWED_ORIGIN = "https://hkai7706.github.io"
+ALLOWED_ORIGINS = "https://hkai7706.github.io,http://localhost:4173,http://127.0.0.1:4173,http://localhost:5173,http://127.0.0.1:5173"
 SCAN_MODEL = "gpt-4.1-mini"
 
 [secrets]
