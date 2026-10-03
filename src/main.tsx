@@ -39,6 +39,7 @@ import {
 } from "./model";
 import { read, mutate, channel } from "./store";
 import { scannerRequest, type ScanResponse } from "./scanner";
+import { imageToScanData } from "./images";
 import "./style.css";
 const uuid = () => crypto.randomUUID();
 const local = (n: number, z = zone()) =>
@@ -320,7 +321,7 @@ function App() {
       for (const file of files) {
         if (file.size > 20 * 1024 * 1024)
           throw Error("Maximum source file size is 20 MB");
-        if (file.type === "application/pdf") {
+        if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
           const pdfjs = await import("pdfjs-dist");
           pdfjs.GlobalWorkerOptions.workerSrc = new URL(
             "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -347,21 +348,14 @@ function App() {
             });
           }
           await pdf.destroy();
-        } else if (file.type.startsWith("image/")) {
-          const bitmap = await createImageBitmap(file);
-          const scale = Math.min(
-              1,
-              2000 / Math.max(bitmap.width, bitmap.height),
-            ),
-            c = document.createElement("canvas");
-          c.width = bitmap.width * scale;
-          c.height = bitmap.height * scale;
-          c.getContext("2d")!.drawImage(bitmap, 0, 0, c.width, c.height);
-          bitmap.close();
+        } else if (
+          file.type.startsWith("image/") ||
+          /\.(png|jpe?g|webp|heic|heif|gif)$/i.test(file.name)
+        ) {
           pages.push({
             filename: file.name,
             page: 1,
-            data: c.toDataURL("image/jpeg", 0.85),
+            data: await imageToScanData(file, state.settings.language),
           });
         } else throw Error("Use images or PDF files");
       }
