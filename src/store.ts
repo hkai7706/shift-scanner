@@ -6,12 +6,22 @@ const db = openDB("shiftly", 1, {
   },
 });
 export async function read(): Promise<State> {
-  return (await (await db).get("state", "main")) ?? structuredClone(initial);
+  return withScannerDefault(
+    (await (await db).get("state", "main")) ?? structuredClone(initial),
+  );
+}
+// Upgrade existing installations without altering their work records or custom endpoints.
+function withScannerDefault(state: State): State {
+  if (!state.settings.scannerUrl)
+    state.settings.scannerUrl = initial.settings.scannerUrl;
+  return state;
 }
 export async function mutate(fn: (s: State) => State) {
   const d = await db;
   const tx = d.transaction("state", "readwrite");
-  const state = (await tx.store.get("main")) ?? structuredClone(initial);
+  const state = withScannerDefault(
+    (await tx.store.get("main")) ?? structuredClone(initial),
+  );
   const next = fn(state);
   await tx.store.put(next, "main");
   await tx.done;

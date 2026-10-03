@@ -3,5 +3,8 @@ dist/
 .env
 .env.*.local
 backend/.dev.vars
+.wrangler/
+backend/.dev.vars.local
+backend/.scanner-token
 *.tsbuildinfo
 artifacts/

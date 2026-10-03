@@ -2,5 +2,5 @@ name = "shiftly-scanner"
 main = "worker.js"
 compatibility_date = "2026-01-01"
 [vars]
-ALLOWED_ORIGIN = "https://YOUR_USERNAME.github.io"
+ALLOWED_ORIGIN = "https://hkai7706.github.io"
 SCAN_MODEL = "gpt-4.1-mini"

@@ -140,6 +140,26 @@ describe("imports and persistence", () => {
   beforeEach(async () => {
     await mutate(() => structuredClone(initial));
   });
+  it("connects existing unconfigured installations without losing records", async () => {
+    const s = session("2026-10-02T09:00", "2026-10-02T10:00");
+    await mutate((st) => ({
+      ...st,
+      settings: { ...st.settings, scannerUrl: "" },
+      shifts: [shift],
+      sessions: [s],
+    }));
+    const recovered = await read();
+    expect(recovered.settings.scannerUrl).toBe(initial.settings.scannerUrl);
+    expect(recovered.shifts).toEqual([shift]);
+    expect(recovered.sessions).toEqual([s]);
+  });
+  it("preserves a custom scanner endpoint", async () => {
+    await mutate((st) => ({
+      ...st,
+      settings: { ...st.settings, scannerUrl: "https://custom.example" },
+    }));
+    expect((await read()).settings.scannerUrl).toBe("https://custom.example");
+  });
   it("recovers active timer after reload from saved timestamps", async () => {
     const s = session("2026-10-02T09:00", "2026-10-02T10:00");
     delete s.end;

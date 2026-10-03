@@ -55,7 +55,9 @@ export const initial: State = {
     aliases: "",
     language: "en",
     theme: "light",
-    scannerUrl: import.meta.env.VITE_SCANNER_URL || "",
+    scannerUrl:
+      import.meta.env.VITE_SCANNER_URL ||
+      "https://shiftly-scanner.shiftly-scanner.workers.dev",
     rules: defaultRules,
   },
   shifts: [],

@@ -24,6 +24,8 @@ The app works without a scanner. Manual entry, timer, reports and backup remain 
 
 ## Deploy optional secure AI scanner separately
 
+The personal deployment is now at `https://shiftly-scanner.shiftly-scanner.workers.dev`, which is the default endpoint for new and previously unconfigured installations. Custom endpoints remain unchanged. This endpoint needs server-side credentials before scanning is usable. `backend/configure-token.mjs` configures a random scanner token via standard input and saves only that token to the Git-ignored `backend/.scanner-token` file; it never prints the token or saves the OpenAI API key. Keep that file private.
+
 The `backend/` Cloudflare Worker accepts one rendered image/page per request and uses image input plus strict JSON extraction. It authenticates with a separate personal access token, enforces the configured origin and request size, and keeps the AI API key server-side. The token grants scanning access only and is held in browser memory until reload, never included in backups. Requests are processed sequentially with timeouts; failures produce honest errors rather than sample results.
 
 1. Create a Cloudflare account and an OpenAI API project with access to the configured vision model. Set a small project spend limit. Provider processing may incur charges.
